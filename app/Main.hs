@@ -57,7 +57,7 @@ main = do
       plot (points "am points" (signal dots'))
 
     toFile def "images/example4_fib.png" $ do
-      layout_title .= "Fibonacci and Logarithmics"
+      layout_title .= "Fibonacci dots and line"
       setColors [opaque blue, opaque red]
       plot (points "fib points" $ fibonacci 18)
       plot (line "Log line" [fibonacci 18])
