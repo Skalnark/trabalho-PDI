@@ -3,38 +3,89 @@ module Main
 
 import Data.Either ()
 import Codec.Picture
+    ( convertRGB8,
+      readImage,
+      savePngImage,
+      pixelMap,
+      DynamicImage(ImageRGB8),
+      Pixel8,
+      PixelRGB8(..), PixelRGB16 )
 import GHC.Real (Fractional)
+import Data.Bifoldable (bifoldl')
+
+data YIQ = YIQ Double Double Double
+data RGB = RGB Double Double Double
 
 main :: IO ()
 main = do
-  input <- readImage "images/gabi.jpg"
+  putStrLn "Insert the image name (including extension): "
+  --imgName <- getLine  
+  let imgName = "lenna.png"
+  input <- readImage $ "images/" ++ imgName
   case input of
     Left err -> putStrLn err
     Right inputImage -> do
       let img = convertRGB8 inputImage
-      savePngImage "images/gabi_red.png" $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 r 0 0) img)
-      savePngImage "images/gabi_green.png" $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 0 g 0) img)
-      savePngImage "images/gabi_blue.png" $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 0 0 b) img)
-      savePngImage "images/gabi_colorful.png" $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 b g r) img)
-      savePngImage "images/gabi_negative.png" $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 (negate r) (negate g) (negate b)) img)
-      savePngImage "images/gabi_YIQ.png" $ ImageRGB8(pixelMap toYIQ img)
+      savePngImage ("images/red_" ++ imgName) $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 r 0 0) img)
+      savePngImage ("images/green_" ++ imgName) $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 0 g 0) img)
+      savePngImage ("images/blue_" ++ imgName) $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 0 0 b) img)
+      savePngImage ("images/negative_RGB_" ++ imgName) $ ImageRGB8(pixelMap (\(PixelRGB8 r g b) -> PixelRGB8 (negate r) (negate g) (negate b)) img)
+      savePngImage ("images/negative_Y_" ++ imgName) $ ImageRGB8(pixelMap negativeFromYIQ img)
+      savePngImage ("images/to_YIQ_and_back_to_rgb_" ++ imgName) $ ImageRGB8(pixelMap backAndAgain img)
+      savePngImage ("images/change_brightness_" ++ imgName) $ ImageRGB8(pixelMap (changeBrightness 10) img)
 
   print "done"
 
---convert :: Pixel8 -> Pixel8 -> Pixel8 -> Pixel8 -> Pixel8 -> Pixel8 -> (Pixel8 -> Pixel8 -> Pixel8) ->Pixel8
-convert :: Pixel8 -> Pixel8 -> Pixel8 -> Double -> Double -> Double -> (Double -> Double -> Double) -> Pixel8
-convert a b c x y z op = round $ (fromIntegral a * x) `op` (fromIntegral b * y) `op` (fromIntegral c * z)
+changeBrightness :: Double -> PixelRGB8 -> PixelRGB8
+changeBrightness bright img = yiq $ rgbToYiq img 
+  where
+    yiq (YIQ y i q) = yiqToRgb $ YIQ (y + bright) i q 
 
-toYIQ :: PixelRGB8 -> PixelRGB8
-toYIQ (PixelRGB8 r g b) = PixelRGB8 (negate $ toY r g b) (toI r g b) (toQ r g b)
 
-imageToY :: PixelRGB8 -> PixelRGB8
-imageToY (PixelRGB8 r g b) = PixelRGB8 y y y
-  where y = toQ r g b
+yiqToRgb :: YIQ -> PixelRGB8
+yiqToRgb (YIQ y i q) = PixelRGB8 r g b
+  where
+    r = trunc $ round $ y + (i * 0.956) + (q * 0.621)
+    g = trunc $ round $ y - (i * 0.272) - (q * 0.647)
+    b = trunc $ round $ y - (i * 1.106) + (q * 1.703)
 
-toY :: Pixel8 -> Pixel8 -> Pixel8 -> Pixel8
-toY r g b = convert r g b 0.299 0.587 0.114 (+)
-toI :: Pixel8 -> Pixel8 -> Pixel8 -> Pixel8
-toI r g b = convert r g b 0.596 0.274 0.322 (-)
-toQ :: Pixel8 -> Pixel8 -> Pixel8 -> Pixel8
-toQ r g b = convert r g b 0.211 0.523 0.312 (-)
+backAndAgain :: PixelRGB8 -> PixelRGB8
+backAndAgain img = imgRGB
+  where
+    imgYIQ = rgbToYiq img
+    imgRGB = yiqToRgb imgYIQ
+
+trunc :: Pixel8 -> Pixel8
+trunc x
+  | x <= 0 = 0
+  | x >= 255 = 255
+  | otherwise = x
+
+negativeFromYIQ :: PixelRGB8 -> PixelRGB8 
+negativeFromYIQ (PixelRGB8 r g b) = rgb
+  where
+    y   = toY r g b
+    i   = toI r g b
+    q   = toQ r g b
+    rgb = yiqToRgb $ YIQ (-y) i q
+
+rgbToYiq :: PixelRGB8 -> YIQ
+rgbToYiq (PixelRGB8 r g b) = YIQ y i q
+  where
+    y = toY r g b
+    i = toI r g b
+    q = toQ r g b
+
+toY :: (Fractional a1, Integral a2, Integral a3, Integral a4) =>
+        a2 -> a3 -> a4 -> a1
+toY r g b = fromIntegral r * 0.299 + fromIntegral g * 0.587 + fromIntegral b * 0.114
+
+
+toI :: (Fractional a1, Integral a2, Integral a3, Integral a4) =>
+        a2 -> a3 -> a4 -> a1
+toI r g b = fromIntegral r * 0.596 - fromIntegral g * 0.274 - fromIntegral b * 0.322
+
+
+toQ :: (Fractional a1, Integral a2, Integral a3, Integral a4) =>
+        a2 -> a3 -> a4 -> a1
+toQ r g b = fromIntegral r * 0.211 - fromIntegral g * 0.523 + fromIntegral b * 0.312
