@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d3b4900878786b213d722e120052dca25fef894ec6b3ce9492ee7a027986e766
+-- hash: 1d48871de39ee37868e2525b849b91099996abfc298e6a5b817293c8103d3e8d
 
 name:           PDI
 version:        0.1.0.0
@@ -26,6 +26,8 @@ source-repository head
   location: https://github.com/githubuser/PDI
 
 library
+  exposed-modules:
+      PDI
   other-modules:
       Paths_PDI
   hs-source-dirs:
