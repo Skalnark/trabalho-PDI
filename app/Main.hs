@@ -11,12 +11,9 @@ import Codec.Picture
       Image,
       DynamicImage(ImageRGB8),
       Pixel8,
-      PixelRGB8(..), PixelRGB16 )
-import GHC.Real (Fractional)
-import Data.Bifoldable (bifoldl')
+      PixelRGB8(..))
 
 data YIQ = YIQ Double Double Double
-data RGB = RGB Double Double Double
 
 main :: IO ()
 main = do
