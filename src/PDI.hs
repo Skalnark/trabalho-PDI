@@ -1,15 +1,21 @@
 module PDI
     ( imageMap,
-      changeBrightness,
+      yiqBrightness,
+      addBrightnessYIQ,
+      multBrightnessYIQ,
+      addBrightnessRGB,
+      multBrightnessRGB,
       backAndAgain,
       negativeFromRGB,
       negativeFromY,
       redComponent,
       greenComponent,
-      blueComponent)
+      blueComponent,
+      thresholdY,
+      thresholdRGB)
   where
 
-import Codec.Picture.Types(Pixel)
+import Codec.Picture.Types(Pixel, PixelRGB16 (PixelRGB16))
 import Codec.Picture
     ( convertRGB8,
       readImage,
@@ -34,13 +40,33 @@ greenComponent (PixelRGB8 r g b) = PixelRGB8 0 g 0
 blueComponent :: PixelRGB8 -> PixelRGB8
 blueComponent (PixelRGB8 r g b) = PixelRGB8 0 0 b
 
-changeBrightness :: Double -> PixelRGB8 -> PixelRGB8
-changeBrightness bright img = yiq $ rgbToYiq img 
+rgbBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
+rgbBrightness op bright (PixelRGB8 r g b) = PixelRGB8 r' g' b'
   where
-    yiq (YIQ y i q) = yiqToRgb $ YIQ (y + bright) i q 
+    r' = trunc . round $ fromIntegral r `op` bright
+    g' = trunc . round $ fromIntegral g `op` bright
+    b' = trunc . round $ fromIntegral b `op` bright
+
+addBrightnessRGB :: Double -> PixelRGB8 -> PixelRGB8
+addBrightnessRGB = rgbBrightness (+)
+
+
+multBrightnessRGB :: Double -> PixelRGB8 -> PixelRGB8
+multBrightnessRGB = rgbBrightness (*)
+
+yiqBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
+yiqBrightness op bright img = yiq $ rgbToYiq img
+  where
+    yiq (YIQ y i q) = yiqToRgb $ YIQ (y `op` bright) i q
+
+addBrightnessYIQ :: Double -> PixelRGB8 -> PixelRGB8
+addBrightnessYIQ = yiqBrightness (+)
+
+multBrightnessYIQ :: Double -> PixelRGB8 -> PixelRGB8
+multBrightnessYIQ = yiqBrightness (*)
 
 backAndAgain :: PixelRGB8 -> PixelRGB8
-backAndAgain = yiqToRgb . rgbToYiq 
+backAndAgain = yiqToRgb . rgbToYiq
 
 trunc :: Pixel8 -> Pixel8
 trunc x
@@ -48,20 +74,20 @@ trunc x
   | x >= 255 = 255
   | otherwise = x
 
-negativeFromRGB :: PixelRGB8 -> PixelRGB8 
+negativeFromRGB :: PixelRGB8 -> PixelRGB8
 negativeFromRGB (PixelRGB8 r g b) = PixelRGB8 (-r) (-g) (-b)
 
-negativeFromY :: PixelRGB8 -> PixelRGB8 
-negativeFromY img = negative $ rgbToYiq img 
+negativeFromY :: PixelRGB8 -> PixelRGB8
+negativeFromY img = negative $ rgbToYiq img
   where
     negative (YIQ y i q) = yiqToRgb $ YIQ (-y) i q
 
 yiqToRgb :: YIQ -> PixelRGB8
 yiqToRgb (YIQ y i q) = PixelRGB8 r g b
   where
-    r = trunc $ round $ y + (i * 0.956) + (q * 0.621)
-    g = trunc $ round $ y - (i * 0.272) - (q * 0.647)
-    b = trunc $ round $ y - (i * 1.106) + (q * 1.703)
+    r = trunc . round $ y + (i * 0.956) + (q * 0.621)
+    g = trunc . round $ y - (i * 0.272) - (q * 0.647)
+    b = trunc . round $ y - (i * 1.106) + (q * 1.703)
 
 rgbToYiq :: PixelRGB8 -> YIQ
 rgbToYiq (PixelRGB8 r g b) = YIQ y i q
@@ -69,3 +95,16 @@ rgbToYiq (PixelRGB8 r g b) = YIQ y i q
     y = fromIntegral r * 0.299 + fromIntegral g * 0.587 + fromIntegral b * 0.114
     i = fromIntegral r * 0.596 - fromIntegral g * 0.274 - fromIntegral b * 0.322
     q = fromIntegral r * 0.211 - fromIntegral g * 0.523 + fromIntegral b * 0.312
+
+thresholdRGB :: Double -> PixelRGB8 -> PixelRGB8
+thresholdRGB lim (PixelRGB8 r g b) = PixelRGB8 t t t
+  where
+    sum = fromIntegral r + fromIntegral g + fromIntegral b
+    med = sum / 3
+    t   = if med > lim then round lim else 0
+
+thresholdY :: Double -> PixelRGB8 -> PixelRGB8
+thresholdY lim img = yiqToRgb . yiq $ rgbToYiq img
+  where
+    yiq (YIQ y i q) = YIQ (threshold y) i q
+    threshold y = if y > lim then lim else y
