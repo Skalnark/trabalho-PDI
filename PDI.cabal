@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e3999b17e79106cd7e25aaa52c674d17264c4a1c8f05944b736fec709cb9f20b
+-- hash: 8c129fbd571af4f4e5d534a59611072402d857b9458eabd76b867b143658f849
 
 name:           PDI
 version:        0.1.0.0
@@ -26,13 +26,18 @@ source-repository head
   location: https://github.com/githubuser/PDI
 
 library
+  exposed-modules:
+      PDI
   other-modules:
       Paths_PDI
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
-    , hip
+      JuicyPixels
+    , base >=4.7 && <5
+    , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010
 
 executable PDI-exe
@@ -43,9 +48,12 @@ executable PDI-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      PDI
+      JuicyPixels
+    , PDI
     , base >=4.7 && <5
-    , hip
+    , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010
 
 test-suite PDI-test
@@ -57,7 +65,10 @@ test-suite PDI-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      PDI
+      JuicyPixels
+    , PDI
     , base >=4.7 && <5
-    , hip
+    , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010
