@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1d48871de39ee37868e2525b849b91099996abfc298e6a5b817293c8103d3e8d
+-- hash: 8c129fbd571af4f4e5d534a59611072402d857b9458eabd76b867b143658f849
 
 name:           PDI
 version:        0.1.0.0
@@ -36,6 +36,8 @@ library
       JuicyPixels
     , base >=4.7 && <5
     , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010
 
 executable PDI-exe
@@ -50,6 +52,8 @@ executable PDI-exe
     , PDI
     , base >=4.7 && <5
     , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010
 
 test-suite PDI-test
@@ -65,4 +69,6 @@ test-suite PDI-test
     , PDI
     , base >=4.7 && <5
     , bytestring
+    , clock
+    , formatting
   default-language: Haskell2010

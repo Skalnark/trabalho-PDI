@@ -43,9 +43,9 @@ blueComponent (PixelRGB8 r g b) = PixelRGB8 0 0 b
 rgbBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
 rgbBrightness op bright (PixelRGB8 r g b) = PixelRGB8 r' g' b'
   where
-    r' = trunc . round $ fromIntegral r `op` bright
-    g' = trunc . round $ fromIntegral g `op` bright
-    b' = trunc . round $ fromIntegral b `op` bright
+    r' = round $ applyBoundedOperation (fromIntegral r) bright op
+    g' = round $ applyBoundedOperation (fromIntegral g) bright op
+    b' = round $ applyBoundedOperation (fromIntegral b) bright op
 
 addBrightnessRGB :: Double -> PixelRGB8 -> PixelRGB8
 addBrightnessRGB = rgbBrightness (+)
@@ -54,10 +54,16 @@ addBrightnessRGB = rgbBrightness (+)
 multBrightnessRGB :: Double -> PixelRGB8 -> PixelRGB8
 multBrightnessRGB = rgbBrightness (*)
 
+applyBoundedOperation :: (Ord p, Num p) => t1 -> t2 -> (t1 -> t2 -> p) -> p
+applyBoundedOperation l r op 
+                | l `op` r >= 255 = 255
+                | l `op` r <= 0 = 0
+                | otherwise = l `op` r
+
 yiqBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
 yiqBrightness op bright img = yiq $ rgbToYiq img
   where
-    yiq (YIQ y i q) = yiqToRgb $ YIQ (y `op` bright) i q
+    yiq (YIQ y i q) = yiqToRgb $ YIQ (applyBoundedOperation y bright op)  i q
 
 addBrightnessYIQ :: Double -> PixelRGB8 -> PixelRGB8
 addBrightnessYIQ = yiqBrightness (+)
@@ -67,12 +73,6 @@ multBrightnessYIQ = yiqBrightness (*)
 
 backAndAgain :: PixelRGB8 -> PixelRGB8
 backAndAgain = yiqToRgb . rgbToYiq
-
-trunc :: Pixel8 -> Pixel8
-trunc x
-  | x <= 0 = 0
-  | x >= 255 = 255
-  | otherwise = x
 
 negativeFromRGB :: PixelRGB8 -> PixelRGB8
 negativeFromRGB (PixelRGB8 r g b) = PixelRGB8 (-r) (-g) (-b)
@@ -85,9 +85,9 @@ negativeFromY img = negative $ rgbToYiq img
 yiqToRgb :: YIQ -> PixelRGB8
 yiqToRgb (YIQ y i q) = PixelRGB8 r g b
   where
-    r = trunc . round $ y + (i * 0.956) + (q * 0.621)
-    g = trunc . round $ y - (i * 0.272) - (q * 0.647)
-    b = trunc . round $ y - (i * 1.106) + (q * 1.703)
+    r = round $ y + (i * 0.956) + (q * 0.621)
+    g = round $ y - (i * 0.272) - (q * 0.647)
+    b = round $ y - (i * 1.106) + (q * 1.703)
 
 rgbToYiq :: PixelRGB8 -> YIQ
 rgbToYiq (PixelRGB8 r g b) = YIQ y i q
@@ -107,4 +107,4 @@ thresholdY :: Double -> PixelRGB8 -> PixelRGB8
 thresholdY lim img = yiqToRgb . yiq $ rgbToYiq img
   where
     yiq (YIQ y i q) = YIQ (threshold y) i q
-    threshold y = if y > lim then lim else y
+    threshold y = if y >= lim then lim else y
