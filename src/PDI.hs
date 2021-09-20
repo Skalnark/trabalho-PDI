@@ -12,7 +12,8 @@ module PDI
       greenComponent,
       blueComponent,
       thresholdY,
-      thresholdRGB)
+      thresholdRGB,
+      saveAndLog)
   where
 
 import Codec.Picture.Types(Pixel, PixelRGB16 (PixelRGB16))
@@ -20,12 +21,19 @@ import Codec.Picture
     ( convertRGB8,
       readImage,
       pixelMap,
+      savePngImage,
       Image,
       DynamicImage(ImageRGB8),
       Pixel8,
       PixelRGB8(..))
 
 data YIQ = YIQ Double Double Double
+
+saveAndLog :: String -> String -> DynamicImage -> IO () 
+saveAndLog prefix name img = do
+  let path = "images/output/" ++ prefix ++ name
+  savePngImage path img 
+  putStrLn $ path ++ " done..."
 
 imageMap :: Pixel a =>
   (a -> PixelRGB8) -> Image a -> DynamicImage
@@ -63,7 +71,7 @@ applyBoundedOperation l r op
 yiqBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
 yiqBrightness op bright img = yiq $ rgbToYiq img
   where
-    yiq (YIQ y i q) = yiqToRgb $ YIQ (applyBoundedOperation y bright op)  i q
+    yiq (YIQ y i q) = yiqToRgb $ YIQ (applyBoundedOperation y bright op) i q
 
 addBrightnessYIQ :: Double -> PixelRGB8 -> PixelRGB8
 addBrightnessYIQ = yiqBrightness (+)
