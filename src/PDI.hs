@@ -68,6 +68,11 @@ applyBoundedOperation l r op
                 | l `op` r <= 0 = 0
                 | otherwise = l `op` r
 
+neg :: Pixel8 -> Pixel8
+neg x =
+  let x' = fromIntegral x
+  in  round $ 255 - x'
+
 yiqBrightness :: (Double -> Double -> Double) -> Double -> PixelRGB8 -> PixelRGB8
 yiqBrightness op bright img = yiq $ rgbToYiq img
   where
@@ -83,7 +88,7 @@ backAndAgain :: PixelRGB8 -> PixelRGB8
 backAndAgain = yiqToRgb . rgbToYiq
 
 negativeFromRGB :: PixelRGB8 -> PixelRGB8
-negativeFromRGB (PixelRGB8 r g b) = PixelRGB8 (-r) (-g) (-b)
+negativeFromRGB (PixelRGB8 r g b) = PixelRGB8 (neg r) (neg g) (neg b)
 
 negativeFromY :: PixelRGB8 -> PixelRGB8
 negativeFromY img = negative $ rgbToYiq img
